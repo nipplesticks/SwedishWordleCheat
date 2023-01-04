@@ -208,12 +208,53 @@ std::vector<std::wstring> newSearchSpec(Dictionary* dic_p, const std::vector<std
 
   return dic_p->FindWordsSpecificExt(vec, mustContain);
 }
-
+#include <map>
 int main()
 {
   _setmode(_fileno(stdout), _O_WTEXT);
   _setmode(_fileno(stdin), _O_WTEXT);
   setlocale(LC_ALL, "Swedish");
+
+  // merge
+  std::wifstream in1("ordlista1.txt");
+  std::wifstream in2("ordlista2.txt");
+  std::map<std::wstring, bool> map;
+  if (in1 && in2)
+  {
+    std::wstring line;
+    while (std::getline(in1, line))
+    {
+      if (line.empty()) continue;
+      if (map[line] == false)
+        map[line] = true;
+    }
+    while (std::getline(in2, line))
+    {
+      if (line.empty()) continue;
+      if (map[line] == false)
+        map[line] = true;
+    }
+    if (in1)
+      in1.close();
+    if (in2)
+      in2.close();
+    std::wofstream out1("ordlista.txt");
+    if (out1)
+    {
+      for (auto& w : map)
+        out1 << w.first << std::endl;
+      out1.close();
+    }
+    return 0;
+  }
+  if (in1)
+    in1.close();
+  if (in2)
+    in2.close();
+
+
+
+
   Dictionary dic;
   std::vector<std::wstring> result;
   int val = -1;
