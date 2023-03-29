@@ -1,0 +1,50 @@
+[Vokaler: 8]
+SÄMJA
+ÖDEBY
+HOURI
+---
+[Vokaler: 8]
+ÅHÖRA
+UTGES
+MYOPI
+---
+[Vokaler: 8]
+OÄVEN
+UTÖKA
+MYSIG
+---
+[Vokaler: 8]
+OÄDEL
+KAURI
+PÅSYN
+---
+[Vokaler: 8]
+JOINA
+LÄSÅR
+ÖDEBY
+---
+[Vokaler: 8]
+EUROS
+ÖVLIG
+ÅBÄKA
+---
+[Vokaler: 8]
+SOLÅR
+UTÖVA
+PYEMI
+---
+[Vokaler: 8]
+UTLYS
+ANOMI
+ÅBÄKE
+---
+[Vokaler: 8]
+NIUER
+OLÄST
+ÅDÖMA
+---
+[Vokaler: 8]
+MUJAO
+YETIS
+NÖDÅR
+---

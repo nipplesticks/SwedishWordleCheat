@@ -4,6 +4,9 @@
 #include <iostream>
 #include <io.h>
 #include <fcntl.h>
+#include <map>
+#include <random>
+#include <algorithm>
 
 struct Dictionary
 {
@@ -20,7 +23,8 @@ public:
         if (line.empty())
           continue;
         ToUpper(line);
-        myWords.push_back(line);
+        if (IsStringOk(line))
+          myWords.push_back(line);
       }
       f.close();
     }
@@ -105,6 +109,10 @@ public:
     return FindWordsSpecificExt(myWords, wordDef);
   }
 
+  const std::vector<std::wstring>& GetWords() const
+  {
+    return myWords;
+  }
 
 private:
   bool Find(const std::wstring& str, const std::wstring& subStr)
@@ -115,13 +123,25 @@ private:
   {
     return str.find(c) < str.size();
   }
+  bool IsStringOk(const std::wstring& str)
+  {
+    for (auto& c : str)
+    {
+      if ((c < L'A' || c > L'Z') && !(c == L'Å' || c == L'Ä' || c == L'Ö'))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
   void ToUpper(std::wstring& str)
   {
     for (auto& c : str)
     {
-      if (c == 'å') c = 'Å';
-      else if (c == 'ä') c = 'Ä';
-      else if (c == 'ö') c = 'Ö';
+      if (c == L'å') c = L'Å';
+      else if (c == L'ä') c = L'Ä';
+      else if (c == L'ö') c = L'Ö';
       else c = std::toupper(c);
     }
   }
@@ -208,7 +228,152 @@ std::vector<std::wstring> newSearchSpec(Dictionary* dic_p, const std::vector<std
 
   return dic_p->FindWordsSpecificExt(vec, mustContain);
 }
-#include <map>
+
+#include <unordered_map>
+
+bool IsUniqueChars(const std::wstring& str)
+{
+  std::unordered_map<wchar_t, bool> map;
+  map[L'X'] = true;
+  map[L'Z'] = true;
+
+  for (auto& c : str)
+  {
+    if (map[c])
+      return false;
+    map[c] = true;
+  }
+
+  return true;
+}
+
+uint16_t GetNumVocals(const std::vector<std::wstring>& words)
+{
+  constexpr uint16_t NUM_VOCALS = 9;
+  static const wchar_t VOCALS_LIST[NUM_VOCALS] = { L'A', L'O', L'U' , L'Å' , L'E' , L'I' , L'Y', L'Ä' , L'Ö' };
+  std::map<wchar_t, bool> vocals_map;
+  for (uint16_t i = 0; i < NUM_VOCALS; i++)
+  {
+    vocals_map[VOCALS_LIST[i]] = true;
+  }
+
+  uint16_t numVocals = 0;
+
+  for (auto& w : words)
+  {
+    for (auto& c : w)
+    {
+      if (vocals_map[c]) numVocals++;
+    }
+  }
+
+  return numVocals;
+}
+
+void findOptimalWordGuesses(Dictionary* dic_p, uint16_t numChars = 5, uint16_t numGuesses = 3, uint16_t numLoops = 10)
+{
+  srand(time(0));
+  static const std::wstring blacklist[] = {
+    L"XVIII",
+    L"PPACA",
+    L"HSDPA",
+    L"UMEBO",
+    L"YIELD"
+  };
+
+  std::unordered_map<std::wstring, bool> blacklistMap;
+  for (auto& bw : blacklist)
+  {
+    blacklistMap[bw] = true;
+  }
+
+
+  const std::vector<std::wstring>& dicWords = dic_p->GetWords();
+  std::vector<std::wstring> words;
+
+  for (auto word : dicWords)
+  {
+    if (word.size() == numChars)
+      words.push_back(word);
+  }
+  size_t size = words.size();
+  std::vector<size_t> indices(size);
+  for (size_t i = 0; i < size; i++)
+  {
+    indices[i] = i;
+  }
+
+  std::wofstream f("optimal.txt");
+  if (f)
+  {
+    for (uint16_t it = 0; it < numLoops; it++)
+    {
+
+      std::vector<std::wstring> returnVal;
+
+      for (size_t i = 0; i < size; i++)
+      {
+        if (words[i].size() != numChars) continue;
+        if (blacklistMap[words[i]]) continue;
+        if (!IsUniqueChars(words[i])) continue;
+
+        std::unordered_map<wchar_t, bool> usedChars;
+        std::vector<std::wstring> guesses;
+
+        for (const auto& c : words[i])
+          usedChars[c] = true;
+
+        guesses.push_back(words[i]);
+
+        std::random_shuffle(indices.begin(), indices.end());
+
+        for (size_t j = 0; j < size; j++)
+        {
+          const std::wstring& currentWord = words[indices[j]];
+
+          if (currentWord.size() != numChars) continue;
+          if (blacklistMap[currentWord]) continue;
+          if (!IsUniqueChars(currentWord)) continue;
+
+          bool wordIsOk = true;
+
+          for (const auto& c : currentWord)
+          {
+            if (usedChars[c])
+            {
+              wordIsOk = false;
+              break;
+            }
+          }
+
+          if (wordIsOk)
+          {
+            guesses.push_back(currentWord);
+            for (const auto& c : currentWord)
+              usedChars[c] = true;
+          }
+          if (guesses.size() == numGuesses) break;
+
+        }
+        if (GetNumVocals(guesses) > GetNumVocals(returnVal))
+        {
+          returnVal = guesses;
+        }
+      }
+
+      f << L"[Vokaler: " << GetNumVocals(returnVal) << L"]" << std::endl;
+      for (auto& str : returnVal)
+      {
+        f << str << std::endl;
+      }
+      f << "---" << std::endl;
+
+    }
+
+  }
+  f.close();
+}
+
 int main()
 {
   _setmode(_fileno(stdout), _O_WTEXT);
@@ -256,6 +421,8 @@ int main()
 
 
   Dictionary dic;
+  //findOptimalWordGuesses(&dic);
+
   std::vector<std::wstring> result;
   int val = -1;
   while (val != 0)
