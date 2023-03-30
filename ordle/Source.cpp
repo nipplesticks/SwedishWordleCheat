@@ -114,6 +114,16 @@ public:
     return myWords;
   }
 
+  static void ToUpper(std::wstring& str)
+  {
+    for (auto& c : str)
+    {
+      if (c == L'å') c = L'Å';
+      else if (c == L'ä') c = L'Ä';
+      else if (c == L'ö') c = L'Ö';
+      else c = std::toupper(c);
+    }
+  }
 private:
   bool Find(const std::wstring& str, const std::wstring& subStr)
   {
@@ -135,16 +145,6 @@ private:
 
     return true;
   }
-  void ToUpper(std::wstring& str)
-  {
-    for (auto& c : str)
-    {
-      if (c == L'å') c = L'Å';
-      else if (c == L'ä') c = L'Ä';
-      else if (c == L'ö') c = L'Ö';
-      else c = std::toupper(c);
-    }
-  }
   std::vector<std::wstring> myWords;
 
 };
@@ -159,6 +159,7 @@ int menu()
   std::wcout << L"3. Fortsatt sökning där bokstavsplatser inte spelar roll\n";
   std::wcout << L"4. Fortsatt sökning där bokstavsplatser spelar roll\n";
   std::wcout << L"5. Spara resultat\n";
+  std::wcout << L"6. Ge mig ord att starta med\n";
   std::wcout << L"0. Avsluta\n";
   std::wcout << "Val: ";
   std::wcin >> val;
@@ -273,13 +274,24 @@ uint16_t GetNumVocals(const std::vector<std::wstring>& words)
 void findOptimalWordGuesses(Dictionary* dic_p, uint16_t numChars = 5, uint16_t numGuesses = 3, uint16_t numLoops = 10)
 {
   srand(time(0));
-  static const std::wstring blacklist[] = {
-    L"XVIII",
-    L"PPACA",
-    L"HSDPA",
-    L"UMEBO",
-    L"YIELD"
-  };
+  std::vector<std::wstring> blacklist;
+  {
+    std::wifstream blacklistInput("blacklist.txt");
+    if (blacklistInput)
+    {
+      std::wstring line;
+      while (std::getline(blacklistInput, line))
+      {
+        if (line.empty()) continue;
+        Dictionary::ToUpper(line);
+        blacklist.push_back(line);
+      }
+
+      blacklistInput.close();
+    }
+  }
+
+
 
   std::unordered_map<std::wstring, bool> blacklistMap;
   for (auto& bw : blacklist)
@@ -362,16 +374,34 @@ void findOptimalWordGuesses(Dictionary* dic_p, uint16_t numChars = 5, uint16_t n
       }
 
       f << L"[Vokaler: " << GetNumVocals(returnVal) << L"]" << std::endl;
+      std::wcout << L"[Vokaler: " << GetNumVocals(returnVal) << L"]" << std::endl;
       for (auto& str : returnVal)
       {
         f << str << std::endl;
+        std::wcout << str << std::endl;
       }
       f << "---" << std::endl;
+      std::wcout << "---" << std::endl;
 
     }
 
   }
   f.close();
+}
+
+void getGuess(Dictionary* dic_p)
+{
+  std::wcout << "Ordets längd: ";
+  unsigned int wordLength = 0;
+  std::wcin >> wordLength;
+  std::wcout << "\nAntal unika ord: ";
+  unsigned int numGuess = 0;
+  std::wcin >> numGuess;
+  std::wcout << "\nAntal iterationer: ";
+  unsigned int numLoops = 0;
+  std::wcin >> numLoops;
+
+  findOptimalWordGuesses(dic_p, wordLength, numGuess, numLoops);
 }
 
 int main()
@@ -417,12 +447,8 @@ int main()
   if (in2)
     in2.close();
 
-
-
-
   Dictionary dic;
-  //findOptimalWordGuesses(&dic);
-
+  
   std::vector<std::wstring> result;
   int val = -1;
   while (val != 0)
@@ -456,9 +482,16 @@ int main()
         of.close();
       }
     }
-    std::wcout << L"Resultat: \n";
-    for (auto& str : result)
-      std::wcout << str << std::endl;
+    else if (val == 6)
+    {
+      getGuess(&dic);
+    }
+    if (val > 0 && val < 5)
+    {
+      std::wcout << L"Resultat: \n";
+      for (auto& str : result)
+        std::wcout << str << std::endl;
+    }
   }
 
   return 0;
